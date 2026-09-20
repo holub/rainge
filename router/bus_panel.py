@@ -497,9 +497,14 @@ def _entry_rows(entry: dict, verbose: bool = True, width: int = 0) -> list[str]:
     if entry.get("kind") == "system":
         body = str(entry.get("body", ""))
         prefix = _entry_prefix(entry, verbose)
+        core, sep, tail = body.partition("#")
+        suffix = ""
+        if sep and tail.strip().isdigit() and core.strip() != "" and core.strip("-─ ") == "":
+            suffix = " #" + tail.strip()  # divider naming its closed round
+            body = core
         if body.strip("-─ ") == "":
             filler = max(len(body), width - 1 - len(prefix)) if width > 0 else len(body)
-            return [prefix + "-" * filler]
+            return [prefix + "-" * filler + suffix]
         return [prefix + f"~~~ {body} ~~~"]
     prefix = _entry_prefix(entry, verbose)
     pad = " " * len(prefix)

@@ -87,7 +87,7 @@ grep -q 'frame.get("dir") or' "$here/router/bus_router.py" || fail "room_new mus
 grep -q '_local_routers' "$here/router/bus_router.py" || fail "kill must list rival routers instead of guessing"
 grep -q 'not substantive' "$here/router/bus_router.py" || fail "courtesy seeds must land as chat"
 grep -q 'def note_presence' "$here/router/bus_router.py" || fail "router must log joins and leaves as system entries"
-grep -q 'note_text("--------------")' "$here/router/bus_router.py" || fail "router must append a divider when a round closes"
+grep -q 'note_text(f"-------------- #{closed_id}")' "$here/router/bus_router.py" || fail "router must name the closed round in the divider"
 grep -q 'def is_courtesy' "$here/router/bus_router.py" || fail "router must distinguish courtesy seeds from task seeds"
 grep -q 'Uniform first turn' "$here/router/bus_router.py" || fail "operator seeds must ping everyone, greetings included"
 grep -q '\[\"deputy\"\] = sender' "$here/router/bus_router.py" || fail "deputy follow-ups must be stamped for extra delivery"
@@ -280,6 +280,7 @@ async def main():
     added = list(room.transcript)[before:]
     assert added[-2].get("body") == "wins", "verdict DM must be filed before the divider"
     assert added[-1].get("kind") == "system" and "---" in added[-1].get("body", ""), "divider must follow the verdict"
+    assert str(added[-1].get("body", "")).strip().split()[-1].startswith("#"), "divider must name the round it closed"
     # lap legs carry the full unknown diff, not just the DM
     room.handle_send("asker", "*", "Q4?", None, None)
     room.handle_send("b", "*", "xb4", None, None)

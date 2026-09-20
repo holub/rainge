@@ -548,9 +548,10 @@ class Room:
         if self.round.timer:
             self.round.timer.cancel()
             self.round.timer = None
+        closed_id = self.round.id
         self.round = None
         self.push_all({"type": "round", "room": self.name, "state": "closed", "reason": reason})
-        self.note_text("--------------")
+        self.note_text(f"-------------- #{closed_id}")
         self.resume_round()
         self.save()
 
