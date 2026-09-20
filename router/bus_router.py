@@ -1182,7 +1182,7 @@ async def main(host: str, port: int) -> None:
 USAGE = """rainge bus router (chat protocol v2)
   bus_router.py serve [host port] [--takeover] [--foreground]  router daemon, detached (returns input at once; stays up after you leave)
   bus_router.py <host> <port>   headless router (compat: same as serve)
-  bus_router.py                 control panel (spawns a throwaway router if none runs; dies with the panel)
+  bus_router.py                 control panel (attaches to the locked singleton; spawns a throwaway only if none runs)
   bus_router.py peep [host port]  command-only control panel on a running router (observes/controls; direct chat blocked)
   bus_router.py list|ls [host port]  rooms on the router, grouped by dir (omit host/port: the locked singleton)
   bus_router.py rm <room> [host port]  delete a room (kills members, drops transcript and sessions)
