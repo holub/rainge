@@ -601,7 +601,12 @@ class Room:
         # without the action. Consume it against the open round if owed, else
         # swallow it — filing strays as chat polluted the transcript with
         # empty rows from unpinged members and junk rounds from deputy noise.
-        if to == "*" and not body.strip() and action in (None, "ack"):
+        if to == "*" and not body.strip() and not (
+            action == "close"
+            and room_round is not None
+            and room_round.state == "synthesizing"
+            and (sender == room_round.candidate or (self.deputy is not None and sender == self.deputy[0]))
+        ):
             if (
                 room_round is not None
                 and room_round.state == "open"
@@ -611,7 +616,7 @@ class Room:
                 room_round.responded[sender] = self.seq
                 self._write_safe(room_round.asker)
                 self._check_complete(room_round)
-            if room_round.state == "open":
+            if room_round is not None and room_round.state == "open":
                 self.arm_response_timeout()  # answers in flight hold the response clock
             self.save()
             return {"type": "receipt", "seq": self.seq, "ack": True}

@@ -470,6 +470,15 @@ async def main():
     room.handle_send("b", "c", "", None, None)
     room.handle_send("b", "c", "", "close", None)
     assert len(room.transcript) == filed, "empty DMs must file no blank rows"
+    # empty broadcasts never file, even carrying an action; the owed consume as ack
+    room.handle_send("asker", "*", "Q?", None, None)
+    qn = room.round.id
+    n = len(room.transcript)
+    r = room.handle_send("b", "*", "", "close", None)
+    assert r.get("ack") and len(room.transcript) == n, "empty action close must ack-consume"
+    assert "b" in room.round.responded, "empty send must consume the owed expectation"
+    r2 = room.handle_send("c", "*", "", None, None)
+    assert r2.get("ack") and len(room.transcript) == n, "stray empty must file nothing"
 
 asyncio.run(main())
 print("rearm unit OK")
