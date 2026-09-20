@@ -501,7 +501,7 @@ def _entry_rows(entry: dict, verbose: bool = True, width: int = 0) -> list[str]:
             suffix = " #" + tail.strip()  # divider naming its closed round
             body = core
         if body.strip("-─ ") == "":
-            filler = max(len(body), width - 1 - len(prefix)) if width > 0 else len(body)
+            filler = max(len(body), width - 1 - len(prefix) - len(suffix)) if width > 0 else len(body)
             return [prefix + "-" * filler + suffix]
         return [prefix + f"~~~ {body} ~~~"]
     prefix = _entry_prefix(entry, verbose)
@@ -514,7 +514,11 @@ def _entry_rows(entry: dict, verbose: bool = True, width: int = 0) -> list[str]:
         rows.append(pad + f"… +{len(lines) - BODY_INLINE_CAP} lines (Ctrl+O for full)")
     ref = entry.get("ref")
     if isinstance(ref, int) and not isinstance(ref, bool):
-        rows[-1] += f" ↳#{ref}"
+        tag = f"↳#{ref}"
+        if width > 0 and width - len(rows[-1]) - len(tag) >= 1:
+            rows[-1] += " " * (width - len(rows[-1]) - len(tag)) + tag
+        else:
+            rows[-1] += f" {tag}"
     return rows
 
 
