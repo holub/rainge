@@ -1,0 +1,10 @@
+{
+  "name": "rainge",
+  "version": "0.3",
+  "description": "Native OMP roundtable: invite task agents as participants, agree on tasks and decisions, observe via panel and Agent Hub.",
+  "omp": {
+    "extensions": [
+      "./extension/rainge.ts"
+    ]
+  }
+}
