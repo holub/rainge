@@ -468,10 +468,8 @@ def _entry_prefix(entry: dict, verbose: bool = True) -> str:
     kind = str(entry.get("kind", ""))
     mark = {"seed": "◆", "response": "·", "synthesis": "✓"}.get(kind, " ")
     arrow = f"@{dst}" if dst not in ("*", "all", "") else ""
-    ref = entry.get("ref")
-    link = f"↳#{ref} " if isinstance(ref, int) and not isinstance(ref, bool) else ""
     seq_slot = f"#{seq:<4}" if verbose else " " * 5
-    return f" {ts} {seq_slot}{mark}{src:<10.10}{arrow:<8.8} " + link
+    return f" {ts} {seq_slot}{mark}{src:<10.10}{arrow:<8.8} "
 
 
 def _fold(head: str, text: str, width: int, indent: str | None = None) -> list[str]:
@@ -514,6 +512,9 @@ def _entry_rows(entry: dict, verbose: bool = True, width: int = 0) -> list[str]:
         rows.extend(_fold(pad, cont, width))
     if len(lines) > BODY_INLINE_CAP:
         rows.append(pad + f"… +{len(lines) - BODY_INLINE_CAP} lines (Ctrl+O for full)")
+    ref = entry.get("ref")
+    if isinstance(ref, int) and not isinstance(ref, bool):
+        rows[-1] += f" ↳#{ref}"
     return rows
 
 
