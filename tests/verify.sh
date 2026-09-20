@@ -476,6 +476,62 @@ print("rearm unit OK")
 PY
 pass "progress re-arms round clocks"
 
+PYTHONPATH="$here/router" python3 - <<'PY'
+import asyncio
+import os
+import tempfile
+import time
+from pathlib import Path
+from unittest.mock import Mock
+import bus_router
+from bus_router import Room
+
+async def main():
+    base = Path(tempfile.mkdtemp(prefix="rainge-verify-snoop-"))
+    bus_router.ROOMS_DIR = Path(tempfile.mkdtemp(prefix="rainge-verify-snoopr-"))
+    bus_router.OMP_SESSIONS_BASE = base
+    room = Room("snoop", "d")
+    room.operator = "op"
+    files = {}
+    for a in ("asker", "b", "c"):
+        room.writers[a] = Mock()
+        room.live.add(a)
+        room.seen.add(a)
+        sdir = base / "snoop" / a
+        sdir.mkdir(parents=True)
+        f = sdir / f"{a}.jsonl"
+        f.write_text("{}\n")
+        files[a] = f
+        room.participants.append({"alias": a, "session": None, "session_dir": str(sdir)})
+    # emitting sessions hold the response clock
+    room.handle_send("asker", "*", "slow Q?", None, None)
+    room._response_timeout()
+    assert room.round is not None and room.round.state == "open", "fresh activity must defer"
+    assert room.round.defers == 1, "defer must spend budget"
+    # silent sessions let the clock win
+    old = time.time() - 300
+    for f in files.values():
+        os.utime(f, (old, old))
+    room._response_timeout()
+    assert room.round is not None and room.round.state == "synthesizing", "stale activity must synthesize"
+    # composing candidate holds the verdict clock
+    now = time.time()
+    for f in files.values():
+        os.utime(f, (now, now))
+    room._candidate_timeout()
+    assert room.round is not None and room.round.state == "synthesizing", "composing must defer"
+    assert room.round.defers == 2, "verdict defer must spend budget"
+    for f in files.values():
+        os.utime(f, (old, old))
+    room._candidate_timeout()
+    assert room.round is None, "silent candidate must close"
+
+asyncio.run(main())
+print("snoop unit OK")
+PY
+pass "session activity defers timeouts"
+
+
 
 
 PYTHONPATH="$here/router" python3 - <<'PY'

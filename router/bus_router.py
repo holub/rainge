@@ -73,6 +73,8 @@ NO_ROOM = "foyer"
 RESPONSE_TIMEOUT = 120.0
 CANDIDATE_TIMEOUT = 180.0
 MAX_CHAIN = 3
+ACTIVITY_WINDOW = 60.0  # session touched this recently: still emitting, not silent
+MAX_DEFERS = 3  # total extra windows granted on fresh activity before the clock wins
 PANEL_ALIAS = "panel"
 
 LOCK_FILE = Path.home() / ".rainge" / "router.lock"
@@ -177,6 +179,7 @@ class Round:
         self.candidate: str | None = None
         self.counts: Dict[str, int] = {}
         self.timer: asyncio.TimerHandle | None = None
+        self.defers = 0  # extra windows already granted on session activity
 
     def state_frame(self, room: str) -> dict:
         return {
@@ -238,6 +241,18 @@ class Room:
         return room
 
     # -- membership -------------------------------------------------------
+
+    def member_recent(self, alias: str) -> bool:
+        # Sneak into the member's own omp session: a session file touched
+        # inside ACTIVITY_WINDOW means the model is still emitting —
+        # progress, not silence. Missing files read as silent.
+        dirs = [str(p.get("session_dir") or "") for p in self.participants if p.get("alias") == alias]
+        dirs = [d for d in dirs if d] or [str(OMP_SESSIONS_BASE / safe_name(self.name) / safe_name(alias))]
+        try:
+            latest = max((q.stat().st_mtime for d in dirs for q in Path(d).glob("*.jsonl")), default=0.0)
+        except OSError:
+            return False
+        return time.time() - latest < ACTIVITY_WINDOW
 
     def online(self) -> list[str]:
         return sorted(self.writers)
@@ -475,6 +490,12 @@ class Room:
         room_round = self.round
         if room_round is None or room_round.state != "open":
             return
+        owed = [x for x in room_round.expected if x not in room_round.responded]
+        if owed and room_round.defers < MAX_DEFERS and all(self.member_recent(x) for x in owed):
+            room_round.defers += 1
+            self.arm_response_timeout()  # still emitting: hold the clock, don't orphan the round
+            self.push_round_state()
+            return
         room_round.state = "synthesizing"
         candidate = self.pick_candidate()
         if candidate is None:
@@ -496,6 +517,11 @@ class Room:
         if self.dead:
             return
         if self.round is None or self.round.state != "synthesizing":
+            return
+        if (self.round.candidate and self.round.defers < MAX_DEFERS
+                and self.member_recent(self.round.candidate)):
+            self.round.defers += 1
+            self.arm_candidate_timeout()  # verdict still composing: hold the clock
             return
         self.close_round("candidate-timeout")
 
