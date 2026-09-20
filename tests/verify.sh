@@ -124,7 +124,7 @@ grep -q 'watch <room>:<alias>' "$here/router/bus_router.py" || fail "router CLI 
 grep -q '"total": len(self.bus.rooms)' "$here/router/bus_router.py" || fail "room_list must report the unfiltered room total"
 grep -q 'rooms_total' "$here/router/bus_panel.py" || fail "panel must show the elsewhere-count on empty dirs"
 grep -q 'live state is per-router' "$here/router/bus_router.py" || fail "serve must warn when another router already runs"
-grep -q 'action in (None, "ack")' "$here/router/bus_router.py" || fail "router must let an empty ack close for a silent member"
+grep -q 'file no blank row' "$here/router/bus_router.py" || fail "router must swallow contentless sends instead of filing them"
 grep -q "message='', action='ack'" "$here/skills/rainge/SKILL.md" || fail "skill must teach the empty ack on silence"
 grep -q 'protocol chrome, never content' "$here/router/bus_router.py" || fail "router must swallow contentless broadcasts instead of chatting them"
 grep -q 'deputized and not is_courtesy' "$here/router/bus_router.py" || fail "deputy must not burn its follow-up on courtesy noise"
