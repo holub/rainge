@@ -738,6 +738,11 @@ except QuitPanel:
     pass
 assert all(f.get("type") != "room_kill" for f in _cw2.sent), "watched-room evict must not kill"
 print("panel send gates OK")
+from bus_panel import _entry_rows as _rows
+_e = {"seq": 4, "ts": "t", "from": "aaa", "to": "*", "kind": "response", "body": "hi", "ref": 3}
+assert "↳#3" in _rows(_e, True, 60)[0], "reply link must render"
+assert "↳" not in _rows(_e, False, 60)[0], "reply link must hide when quiet"
+print("link render OK")
 # strict lookup: reads never conjure deleted rooms
 from bus_router import Bus, Session, Room
 _bus = Bus("127.0.0.1", 7499)
