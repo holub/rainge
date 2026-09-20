@@ -47,7 +47,9 @@ COMMANDS = {
     "/kick <alias>": "disconnect an alias",
     "/r[oster]": "refresh roster and round state",
     "/rm [id]": "delete a room (kills its participants, clears transcript and roster)",
-    "/quit /bye /q": "leave (kills members only of a room you joined; a watched room is left alone)",
+    "/exit /q": "close the panel; room and participants stay connected",
+    "/evict": "kill the joined room's members and close the panel (a watched room is left alone)",
+    "/quit /bye": "leave (kills members only of a room you joined; a watched room is left alone)",
     "/verbose": "toggle transcript chrome (dividers, #seq, join/leave lines)",
 }
 
@@ -589,16 +591,23 @@ def _run_command(client: BusClient, st: PanelState, text: str) -> None:
         if not ok:
             st.status = hint
             return
-    if cmd in ("/quit", "/q", "/bye"):
+    if cmd in ("/exit", "/q"):
+        # Detach: the UI closes, the room and its members stay on the bus.
+        raise QuitPanel
+    if cmd in ("/quit", "/bye"):
         # Leaving is free; killing is owned: only a joined room's members die
         # with you. A merely watched room is left exactly as found.
+        if st.room != NO_ROOM and st.explicit_room == st.room:
+            client.send({"type": "room_kill", "room": st.room})
+        raise QuitPanel
+    if cmd == "/evict":
         if st.room != NO_ROOM and st.explicit_room == st.room:
             client.send({"type": "room_kill", "room": st.room})
         raise QuitPanel
     if cmd == "/help":
         st.pick_kind = "help — Enter runs or loads command"
         st.pick_items = [
-            {"label": f"{('/q[uit] /bye' if name == '/quit /bye /q' else name):<20} {what}", "command": name}
+            {"label": f"{name:<20} {what}", "command": name}
             for name, what in available_commands(st).items()
         ]
         st.pick_sel = 0

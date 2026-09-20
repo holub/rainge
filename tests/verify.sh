@@ -174,7 +174,8 @@ grep -q 'KEY_DC' "$here/router/bus_panel.py" || fail "add picker must delete sto
 grep -q 'room_detach' "$here/router/bus_router.py" || fail "router must forget rooms while keeping members detached"
 grep -q 'room_detach' "$here/router/bus_panel.py" || fail "join picker must forget rooms on DEL"
 grep -q 'def available_commands' "$here/router/bus_panel.py" || fail "panel must gate commands by context"
-grep -q '"/quit /bye /q"' "$here/router/bus_panel.py" || fail "leave command must be /bye"
+grep -q '"/exit /q"' "$here/router/bus_panel.py" || fail "detach command must be /exit"
+grep -q '"/evict"' "$here/router/bus_panel.py" || fail "panel must offer /evict"
 grep -q '"/new <id>"' "$here/router/bus_panel.py" || fail "help must list the room creator"
 # panel/router skew surfaces as "unknown frame type": every frame the panel
 # sends must have a router handler.
@@ -714,14 +715,29 @@ try:
 except QuitPanel:
     pass
 assert all(f.get("type") != "room_kill" for f in _cw.sent), "watched-room quit must not kill"
-# /q from a joined room kills its members
+# /q from a joined room detaches: members stay connected
 _cj = FakeClient(); _stj = PanelState(); _stj.room = "hngmn"; _stj.explicit_room = "hngmn"
 try:
     _run_command(_cj, _stj, "/q")
     assert False, "/q must raise QuitPanel"
 except QuitPanel:
     pass
-assert any(f.get("type") == "room_kill" for f in _cj.sent), "joined-room quit must kill"
+assert all(f.get("type") != "room_kill" for f in _cj.sent), "joined-room /q must not kill"
+# /evict from a joined room kills its members; from a watched room it just leaves
+_ce = FakeClient(); _ste = PanelState(); _ste.room = "hngmn"; _ste.explicit_room = "hngmn"
+try:
+    _run_command(_ce, _ste, "/evict")
+    assert False, "/evict must raise QuitPanel"
+except QuitPanel:
+    pass
+assert any(f.get("type") == "room_kill" for f in _ce.sent), "joined-room evict must kill"
+_cw2 = FakeClient(); _stw2 = PanelState(); _stw2.room = "hngmn"; _stw2.explicit_room = ""
+try:
+    _run_command(_cw2, _stw2, "/evict")
+    assert False, "/evict must raise QuitPanel"
+except QuitPanel:
+    pass
+assert all(f.get("type") != "room_kill" for f in _cw2.sent), "watched-room evict must not kill"
 print("panel send gates OK")
 # strict lookup: reads never conjure deleted rooms
 from bus_router import Bus, Session, Room
@@ -982,7 +998,7 @@ st = PanelState()
 names = set(available_commands(st))
 for hidden in ("/join [id]", "/rm [id]", "/kick <alias>", "/add [alias]", "/verbose"):
     assert hidden not in names, (hidden, names)
-assert {"/help", "/new <id>", "/r[oster]", "/quit /bye /q"} <= names, names
+assert {"/help", "/new <id>", "/r[oster]", "/quit /bye", "/exit /q", "/evict"} <= names, names
 c = FakeClient()
 for cmd, hint in (("/join", "no rooms yet"), ("/rm", "no rooms yet"),
                    ("/kick x", "nobody here"), ("/add bob", "no room joined"),
