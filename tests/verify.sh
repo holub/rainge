@@ -138,13 +138,14 @@ grep -q -- '--takeover' "$here/router/bus_router.py" || fail "serve must offer t
 grep -q 'attaching there (singleton)' "$here/router/bus_panel.py" || fail "panel must attach to the locked endpoint instead of spawning"
 grep -q 'def delete_room' "$here/router/bus_router.py" || fail "Bus must share one delete_room path"
 grep -q 'shutil.rmtree(member_home' "$here/router/bus_router.py" || fail "delete must remove orphaned member sessions"
-grep -q 'trusts the socket' "$here/router/bus_router.py" || fail "CLI delete must work pre-hello"
-grep -q 'args\[0\] == "delete"' "$here/router/bus_router.py" || fail "delete CLI missing"
+grep -q 'trusts the socket' "$here/router/bus_router.py" || fail "CLI rm must work pre-hello"
+grep -q 'args\[0\] == "rm"' "$here/router/bus_router.py" || fail "rm CLI missing"
+grep -q 'args\[0\] in ("list", "ls")' "$here/router/bus_router.py" || fail "ls alias missing"
 grep -q 'args\[0\] == "kill"' "$here/router/bus_router.py" || fail "kill CLI missing"
 grep -q 'refusing to guess' "$here/router/bus_router.py" || fail "kill must refuse an unlocked router"
 grep -q 'allow_spawn' "$here/router/bus_panel.py" || fail "show must be attach-only"
 grep -q 'bus_router.py kill' "$here/router/bus_router.py" || fail "usage must document kill"
-grep -q 'bus_router.py delete <room>' "$here/router/bus_router.py" || fail "usage must document delete"
+grep -q 'bus_router.py rm <room>' "$here/router/bus_router.py" || fail "usage must document rm"
 pass "router contracts"
 
 # --- panel contracts ------------------------------------------------------------

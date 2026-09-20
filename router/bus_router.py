@@ -44,7 +44,7 @@ client -> server:
 
 Usage: bus_router.py serve [host] [port] [--takeover] [--foreground]   detached singleton router (returns input at once; --foreground stays attached)
        bus_router.py | peep [host] [port]  control panel (bare may spawn a throwaway router, peep never does; peep is command-only)
-       bus_router.py list [host port] | delete <room> [host port] | watch <room>:<alias> | kill
+       bus_router.py list|ls [host port] | rm <room> [host port] | watch <room>:<alias> | kill
 """
 
 from __future__ import annotations
@@ -875,7 +875,7 @@ class Bus:
         return killed
 
     def delete_room(self, name: str, keep: asyncio.StreamWriter | None = None) -> dict:
-        # Shared by panel /delete, CLI delete, and pre-hello maintenance:
+        # Shared by panel /delete, CLI rm, and pre-hello maintenance:
         # kill members, evict sockets, drop the file, and remove orphaned
         # member sessions. Idempotent: deleting nothing still reports deleted.
         room = self.room(name)
@@ -964,7 +964,7 @@ class Session:
         ftype = frame.get("type")
         if self.alias is None:
             if ftype == "room_list":
-                # Read-only listing is safe before hello (used by `bus_router.py list`).
+                # Read-only listing is safe before hello (used by `bus_router.py list|ls`).
                 rooms = self.bus.rooms_for(frame.get("dir"))
                 self.reply(writer, {"type": "rooms", "router": {"host": self.bus.host, "port": self.bus.port, "pid": os.getpid()}, "rooms": rooms, "total": len(self.bus.rooms)})
                 return True
@@ -1184,11 +1184,12 @@ USAGE = """rainge bus router (chat protocol v2)
   bus_router.py <host> <port>   headless router (compat: same as serve)
   bus_router.py                 control panel (spawns a throwaway router if none runs; dies with the panel)
   bus_router.py peep [host port]  command-only control panel on a running router (observes/controls; direct chat blocked)
-  bus_router.py list [host port]  rooms on the router, grouped by dir (omit host/port: the locked singleton)
-  bus_router.py delete <room> [host port]  delete a room (kills members, drops transcript and sessions)
+  bus_router.py list|ls [host port]  rooms on the router, grouped by dir (omit host/port: the locked singleton)
+  bus_router.py rm <room> [host port]  delete a room (kills members, drops transcript and sessions)
   bus_router.py watch <room>:<alias>  open a frozen copy of a member session in omp
   bus_router.py kill            kill the singleton router daemon
-  (omit host/port: list, show, delete and panel use the locked singleton router)"""
+
+  (omit host/port: list, show, rm and panel use the locked singleton router)"""
 
 
 async def list_rooms(host: str, port: int) -> None:
@@ -1237,7 +1238,7 @@ def _local_routers() -> list[tuple[str, int, int]]:
     except OSError:
         return found
     for line in (proc.stdout or "").splitlines():
-        if "bus_router.py" not in line or " list" in line:
+        if "bus_router.py" not in line or " list" in line or " ls" in line:
             continue
         parts = line.split(None, 2)
         if len(parts) < 3:
@@ -1374,21 +1375,21 @@ if __name__ == "__main__":
                 if snap is not None:
                     print(f"watching frozen copy of {room}:{alias} in {snap}")
                     os.execvp("omp", ["omp", "--session-dir", str(snap), "-c"])
-        elif args and args[0] == "list":
+        elif args and args[0] in ("list", "ls"):
             positional = list(args[1:])
             if positional and positional[0].startswith("-"):
-                print("usage: bus_router.py list [host port]")
+                print("usage: bus_router.py list|ls [host port]")
             else:
                 host, port = default_endpoint()
                 if positional:
                     host = positional[0]
                     port = int(positional[1]) if len(positional) > 1 else 7480
                 asyncio.run(list_rooms(host, port))
-        elif args and args[0] == "delete":
+        elif args and args[0] == "rm":
             name = args[1] if len(args) > 1 else ""
             rest = args[2:]
             if not name:
-                print("usage: bus_router.py delete <room> [host port]")
+                print("usage: bus_router.py rm <room> [host port]")
             else:
                 host, port = default_endpoint()
                 if rest:
