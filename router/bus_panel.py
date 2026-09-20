@@ -47,9 +47,8 @@ COMMANDS = {
     "/kick <alias>": "disconnect an alias",
     "/r[oster]": "refresh roster and round state",
     "/rm [id]": "delete a room (kills its participants, clears transcript and roster)",
-    "/exit /q": "close the panel; room and participants stay connected",
+    "/exit /quit /q /bye": "close the panel; room and participants stay connected",
     "/evict": "kill the joined room's members and close the panel (a watched room is left alone)",
-    "/quit /bye": "leave (kills members only of a room you joined; a watched room is left alone)",
     "/verbose": "toggle transcript chrome (dividers, #seq, join/leave lines)",
 }
 
@@ -591,14 +590,8 @@ def _run_command(client: BusClient, st: PanelState, text: str) -> None:
         if not ok:
             st.status = hint
             return
-    if cmd in ("/exit", "/q"):
+    if cmd in ("/exit", "/q", "/quit", "/bye"):
         # Detach: the UI closes, the room and its members stay on the bus.
-        raise QuitPanel
-    if cmd in ("/quit", "/bye"):
-        # Leaving is free; killing is owned: only a joined room's members die
-        # with you. A merely watched room is left exactly as found.
-        if st.room != NO_ROOM and st.explicit_room == st.room:
-            client.send({"type": "room_kill", "room": st.room})
         raise QuitPanel
     if cmd == "/evict":
         if st.room != NO_ROOM and st.explicit_room == st.room:
@@ -908,7 +901,7 @@ def _complete_input(st: PanelState) -> None:
             st.status = "no alias matches"
         return
     if text.startswith("/") and " " not in text:
-        names = sorted({name.split()[0] for name in available_commands(st)} | {"/q", "/bye", "/r"})
+        names = sorted({name.split()[0] for name in available_commands(st)} | {"/q", "/quit", "/bye", "/r"})
         matches = [n for n in names if n.startswith(text)]
         if len(matches) == 1:
             st.input = matches[0] + " "

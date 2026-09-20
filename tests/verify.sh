@@ -153,7 +153,7 @@ pass "router contracts"
 grep -q 'type to chat' "$here/router/bus_panel.py" || fail "panel must be input-first"
 grep -q '"live": True' "$here/router/bus_panel.py" || fail "panel must subscribe to live transcript diffs"
 grep -q '"to": "\*"' "$here/router/bus_panel.py" || fail "plain input must broadcast (open a round)"
-grep -q 'room_kill' "$here/router/bus_panel.py" || fail "quit must kill the room's participants"
+grep -q 'room_kill' "$here/router/bus_panel.py" || fail "evict must kill the room's participants"
 grep -q 'observe-only' "$here/router/bus_panel.py" || fail "attach must observe, never revive"
 [ "$(grep -c 'room_resume' "$here/router/bus_panel.py")" = 1 ] || fail "only explicit /join may revive participants"
 grep -q '"/add \[alias\]"' "$here/router/bus_panel.py" || fail "panel actions must be slash commands"
@@ -174,9 +174,8 @@ grep -q 'KEY_DC' "$here/router/bus_panel.py" || fail "add picker must delete sto
 grep -q 'room_detach' "$here/router/bus_router.py" || fail "router must forget rooms while keeping members detached"
 grep -q 'room_detach' "$here/router/bus_panel.py" || fail "join picker must forget rooms on DEL"
 grep -q 'def available_commands' "$here/router/bus_panel.py" || fail "panel must gate commands by context"
-grep -q '"/exit /q"' "$here/router/bus_panel.py" || fail "detach command must be /exit"
+grep -q '"/exit /quit /q /bye"' "$here/router/bus_panel.py" || fail "detach command must be /exit"
 grep -q '"/evict"' "$here/router/bus_panel.py" || fail "panel must offer /evict"
-grep -q '"/new <id>"' "$here/router/bus_panel.py" || fail "help must list the room creator"
 # panel/router skew surfaces as "unknown frame type": every frame the panel
 # sends must have a router handler.
 grep -q 'ftype != "hello"' "$here/router/bus_router.py" || fail "router must gate pre-hello frames"
@@ -998,7 +997,7 @@ st = PanelState()
 names = set(available_commands(st))
 for hidden in ("/join [id]", "/rm [id]", "/kick <alias>", "/add [alias]", "/verbose"):
     assert hidden not in names, (hidden, names)
-assert {"/help", "/new <id>", "/r[oster]", "/quit /bye", "/exit /q", "/evict"} <= names, names
+assert {"/help", "/new <id>", "/r[oster]", "/exit /quit /q /bye", "/evict"} <= names, names
 c = FakeClient()
 for cmd, hint in (("/join", "no rooms yet"), ("/rm", "no rooms yet"),
                    ("/kick x", "nobody here"), ("/add bob", "no room joined"),
