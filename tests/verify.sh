@@ -446,6 +446,7 @@ async def main():
     # an answer holds the response clock
     room.handle_send("asker", "*", "slow Q?", None, None)
     q = room.round.id
+    assert room.transcript[-1]["round"] == q, "opener must link the round it opened"
     first = room.round.timer.when()
     await asyncio.sleep(0.05)
     room.handle_send("b", "*", "halfway", None, None, q)

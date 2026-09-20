@@ -352,6 +352,7 @@ class Room:
             expected = [a for a in self.writers if a not in (asker, self.operator)]
         self.deputy = None  # a new round supersedes any pending tie-break
         self.round = Round(seed["seq"], asker, expected, chain=chain)
+        seed["round"] = self.round.id  # the opener filed null; link it to the round it opened
         for alias in expected:
             self.round.counts[alias] = self.round.counts.get(alias, 0)
         self.arm_response_timeout()
