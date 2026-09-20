@@ -54,7 +54,26 @@ Inside a single `omp` session, `/rainge` coordinates task agents without leaving
 | `/rainge status` | Show membership and dispatch state. |
 | `/rainge decide <text>` | Persist a namespaced decision and steer the moderator. |
 
-Invitees are OMP task agents (`.omp/agents`, `~/.omp/agent/agents`, enabled extension packages, bundled agents) or `modelRoles` keys from the user config. A role resolves to the same-named agent when one exists, otherwise Rainge provisions a project role-backed agent (`.omp/agents/<role>.md` with `model: "@<role>"`) so the role's model applies. Use `Alt+A` for Agent Hub, `/todo` for the shared task list. The full moderator and member contract lives in `skills/rainge/SKILL.md`.
+Invitees are OMP task agents (`.omp/agents`, `~/.omp/agent/agents`, enabled extension packages, bundled agents) or `modelRoles` keys from the user config. A role resolves to the same-named agent when one exists, otherwise RaiNGE provisions a project role-backed agent (`.omp/agents/<role>.md` with `model: "@<role>"`) so the role's model applies. Use `Alt+A` for Agent Hub, `/todo` for the shared task list. The full moderator and member contract lives in `skills/rainge/SKILL.md`.
+
+## Agents
+
+An agent card is a Markdown file with YAML frontmatter:
+
+```md
+---
+name: default
+description: one-line human summary
+model: "@default"
+---
+
+System prompt body — shipped inline into the task text at first assignment.
+```
+
+- **Identity:** the `name:` key wins; without one the filename (minus `.md`) is the name.
+- **Model:** `model: "@<role>"` pins a `modelRoles` key from the user config, so a role invite runs on the role's model.
+- **Discovery:** bundled agents, then project `.omp/agents/`, then the user agent dir — project-local shadows global and travels with the repo.
+- Keep the body short: it doubles as the member's bus convention (`bus op=send`, ack-on-silence, operator-out by default). See `.omp/agents/default.md`.
 
 ## Layout
 
