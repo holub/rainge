@@ -513,8 +513,7 @@ def _entry_rows(entry: dict, verbose: bool = True, width: int = 0) -> list[str]:
         rows.extend(_fold(pad, cont, width))
     if len(lines) > BODY_INLINE_CAP:
         rows.append(pad + f"… +{len(lines) - BODY_INLINE_CAP} lines (Ctrl+O for full)")
-    ref = entry.get("ref")
-    if isinstance(ref, int) and not isinstance(ref, bool):
+    if verbose and isinstance(ref, int) and not isinstance(ref, bool):
         tag = f"↳#{ref}"
         if width > 0 and width - len(rows[-1]) - len(tag) >= 1:
             rows[-1] += " " * (width - len(rows[-1]) - len(tag)) + tag
