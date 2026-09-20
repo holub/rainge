@@ -743,6 +743,13 @@ _e = {"seq": 4, "ts": "t", "from": "aaa", "to": "*", "kind": "response", "body":
 assert "↳#3" in _rows(_e, True, 60)[0], "reply link must render"
 assert "↳" not in _rows(_e, False, 60)[0], "reply link must hide when quiet"
 print("link render OK")
+import bus_panel as _bp, tempfile as _tf
+from pathlib import Path as _Path
+_bp.INPUT_HISTORY_FILE = _Path(_tf.mktemp(suffix=".json"))
+_hst = _bp.PanelState(); _hst.slug = "proj"
+_bp._remember_input(_hst, "hello members")
+assert _bp._load_history("proj") == ["hello members"], "input history must survive panel restarts"
+print("history persist OK")
 # strict lookup: reads never conjure deleted rooms
 from bus_router import Bus, Session, Room
 _bus = Bus("127.0.0.1", 7499)

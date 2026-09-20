@@ -84,6 +84,7 @@ def dir_slug(cwd: str) -> str:
 
 ROOMS_DIR = Path.home() / ".rainge" / "rooms"  # mirrors bus_router.ROOMS_DIR
 LAST_ROOM_FILE = Path.home() / ".rainge" / "last_room.json"
+INPUT_HISTORY_FILE = Path.home() / ".rainge" / "panel_history.json"
 
 
 def _last_room(slug: str) -> str:
@@ -108,6 +109,30 @@ def _remember_room(slug: str, room: str) -> None:
         data[slug] = room
         LAST_ROOM_FILE.parent.mkdir(parents=True, exist_ok=True)
         LAST_ROOM_FILE.write_text(json.dumps(data))
+    except OSError:
+        pass
+
+def _load_history(slug: str) -> list[str]:
+    try:
+        rows = json.loads(INPUT_HISTORY_FILE.read_text()).get(slug, [])
+        return [str(r) for r in rows if isinstance(r, str)][-100:]
+    except (OSError, ValueError, AttributeError):
+        return []
+
+
+def _save_history(slug: str, history: list[str]) -> None:
+    if not slug:
+        return
+    try:
+        try:
+            data = json.loads(INPUT_HISTORY_FILE.read_text())
+        except (OSError, ValueError):
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        data[slug] = history[-100:]
+        INPUT_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        INPUT_HISTORY_FILE.write_text(json.dumps(data))
     except OSError:
         pass
 
@@ -361,6 +386,7 @@ class PanelState:
         self.history: list[str] = []
         self.history_index: int | None = None
         self.history_draft = ""
+        self.slug = ""
         self.detail: dict | None = None  # entry open in the full-body overlay
         self.detail_off = 0
 
@@ -753,6 +779,8 @@ def _draw(
     st = PanelState()
     st.allow_chat = allow_chat
     slug = dir_slug(os.getcwd())
+    st.slug = slug
+    st.history = _load_history(slug)
     start = _last_room(slug)
     if start != NO_ROOM and not (ROOMS_DIR / f"{start}.json").exists():
         start = NO_ROOM  # remembered room was deleted; do not resurrect it
@@ -865,6 +893,7 @@ def _remember_input(st: PanelState, text: str) -> None:
     if text and (not st.history or st.history[-1] != text):
         st.history.append(text)
         del st.history[:-100]
+    _save_history(st.slug, st.history)
     st.history_index = None
     st.history_draft = ""
 
