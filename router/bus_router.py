@@ -585,6 +585,8 @@ class Room:
                 room_round.responded[sender] = self.seq
                 self._write_safe(room_round.asker)
                 self._check_complete(room_round)
+            if room_round.state == "open":
+                self.arm_response_timeout()  # answers in flight hold the response clock
             self.save()
             return {"type": "receipt", "seq": self.seq, "ack": True}
         # A contentless close from the decider files nothing: the verdict is
@@ -621,6 +623,13 @@ class Room:
         if looping:
             self.deputy = (deputy, time.monotonic())  # directed pings refresh the loop
         verdict_close = sender == deputy and action == "close"
+        if to != "*" and not body.strip() and action in (None, "ack", "close"):
+            # An empty DM is a stand-down, not content: file no blank row.
+            # A closing one still releases the loop mandate.
+            if action == "close" and sender == deputy:
+                self.deputy = None
+            self.save()
+            return {"type": "receipt", "seq": self.seq, "ack": True}
         substantive = opens_round(sender, body, self.operator) or action in ("close", "round") or (deputized and not is_courtesy(body))
         if kind == "seed" and not substantive:
             kind = "chat"
@@ -640,6 +649,8 @@ class Room:
             # Loop answer: addressed to the decider, rendered with the decider footer.
             entry["deputy"] = deputy
             self.deputy = (deputy, time.monotonic())  # live loop keeps the mandate; expiry is for dead loops
+        if entry.get("deputy") and room_round is not None and room_round.state == "synthesizing":
+            self.arm_candidate_timeout()  # loop progress holds the verdict clock
         if to != "*" and kind == "chat":
             self.ping(to)  # lap leg carries the full unknown diff; the push below skips the delivered
         if kind == "response" and room_round is not None:
@@ -652,6 +663,8 @@ class Room:
             room_round.counts[sender] = room_round.counts.get(sender, 0) + 1
             self._write_safe(room_round.asker)
             self._check_complete(room_round)
+            if room_round.state == "open":
+                self.arm_response_timeout()  # answers in flight hold the response clock
         elif to == "*" and kind == "seed":
             self.open_round(sender, entry)
             for alias in self.round.expected:

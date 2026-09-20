@@ -426,6 +426,57 @@ print("nesting unit OK")
 PY
 pass "nested rounds suspend and resume"
 
+PYTHONPATH="$here/router" python3 - <<'PY'
+import asyncio
+import tempfile
+from pathlib import Path
+from unittest.mock import Mock
+import bus_router
+from bus_router import Room
+
+async def main():
+    bus_router.ROOMS_DIR = Path(tempfile.mkdtemp(prefix="rainge-verify-rearm-"))
+    bus_router.OMP_SESSIONS_BASE = Path(tempfile.mkdtemp(prefix="rainge-verify-rearms-"))
+    room = Room("rearm", "d")
+    room.operator = "op"
+    for a in ("asker", "b", "c"):
+        room.writers[a] = Mock()
+        room.live.add(a)
+        room.seen.add(a)
+    # an answer holds the response clock
+    room.handle_send("asker", "*", "slow Q?", None, None)
+    q = room.round.id
+    first = room.round.timer.when()
+    await asyncio.sleep(0.05)
+    room.handle_send("b", "*", "halfway", None, None, q)
+    assert room.round.state == "open", "one answer must not complete"
+    assert room.round.timer.when() > first, "answer must re-arm the response clock"
+    room.handle_send("c", "*", "rest", None, None, q)
+    assert room.round.state == "synthesizing", "both answers must synthesize"
+    # loop progress holds the verdict clock
+    cand = room.round.candidate
+    peer = "b" if cand == "c" else "c"
+    marked = room.round.timer.when()
+    await asyncio.sleep(0.05)
+    room.handle_send("b", "*", "", None, None)  # contentless: no stamp, no re-arm
+    assert room.round.timer.when() == marked, "chrome must not touch the verdict clock"
+    room.handle_send(cand, peer, "keep going", None, None)
+    room.handle_send(peer, cand, "still on it", None, None)
+    assert room.round.timer.when() > marked, "loop progress must re-arm the verdict clock"
+    room.handle_send(cand, "*", "verdict", "close", None)
+    assert room.round is None, "verdict must close"
+    # empty DMs file nothing and close nothing
+    filed = len(room.transcript)
+    room.handle_send("b", "c", "", None, None)
+    room.handle_send("b", "c", "", "close", None)
+    assert len(room.transcript) == filed, "empty DMs must file no blank rows"
+
+asyncio.run(main())
+print("rearm unit OK")
+PY
+pass "progress re-arms round clocks"
+
+
 
 PYTHONPATH="$here/router" python3 - <<'PY'
 import tempfile
