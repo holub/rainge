@@ -863,7 +863,7 @@ st = PanelState()
 names = set(available_commands(st))
 for hidden in ("/join [id]", "/rm [id]", "/kick <alias>", "/add [alias]", "/verbose"):
     assert hidden not in names, (hidden, names)
-assert {"/help", "/new <id>", "/roster", "/quit /bye /q"} <= names, names
+assert {"/help", "/new <id>", "/r[oster]", "/quit /bye /q"} <= names, names
 c = FakeClient()
 for cmd, hint in (("/join", "no rooms yet"), ("/rm", "no rooms yet"),
                    ("/kick x", "nobody here"), ("/add bob", "no room joined"),

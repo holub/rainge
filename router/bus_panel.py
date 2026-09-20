@@ -10,7 +10,7 @@ Input:   <text> + Enter          broadcast to the room (opens a round)
          @alias <text> + Enter   direct message to one participant
          Esc / Ctrl+C             clear the input
 Commands: /help /new <id> /join [id] /add [alias] /kick <alias>
-          /roster /q[uit] /bye  (quit leaves; members die only with a room you joined —
+          /r[oster] /q[uit] /bye  (quit leaves; members die only with a room you joined —
                                   a watched room is left alone; they return on /join)
 Tab:      complete @aliases and /commands
 Scroll:   Ctrl+N / Ctrl+P / PgDn / PgUp / Ctrl+G bottom
@@ -43,9 +43,9 @@ COMMANDS = {
     "/help": "list commands",
     "/new <id>": "create a room for this directory and join it",
     "/join [id]": "pick a room or join one by id (revives its participants); DEL forgets the room file, members stay detached",
-    "/add [alias]": "seat a participant: pick a stored session, an omp session, or a fresh instance; DEL on a stored row deletes it and unseats everywhere",
+    "/add [alias]": "seat a participant: pick a stored session or a fresh instance; DEL on a stored row deletes it and unseats everywhere",
     "/kick <alias>": "disconnect an alias",
-    "/roster": "refresh roster and round state",
+    "/r[oster]": "refresh roster and round state",
     "/rm [id]": "delete a room (kills its participants, clears transcript and roster)",
     "/quit /bye /q": "leave (kills members only of a room you joined; a watched room is left alone)",
     "/verbose": "toggle transcript chrome (dividers, #seq, join/leave lines)",
@@ -615,7 +615,7 @@ def _run_command(client: BusClient, st: PanelState, text: str) -> None:
     elif cmd == "/kick" and arg:
         client.send({"type": "kick", "room": st.room, "alias": arg})
         st.status = f"kick sent: {arg}"
-    elif cmd in ("/roster", "/r"):
+    elif cmd in ("/roster", "/r", "/r[oster]"):
         client.send({"type": "list", "room": st.room})
         client.send({"type": "room_list", "dir": slug})
     elif cmd == "/verbose":
